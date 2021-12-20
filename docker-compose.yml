@@ -1,0 +1,35 @@
+version: '3'
+services:
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    expose:
+      - 6379
+  mongodb:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    expose:
+      - 27017
+  character-marvel:
+    build: ./character-marvel
+    ports:
+      - "8080:8080"
+    links:
+      - redis
+      - mongodb
+    restart: always
+    environment:
+      - MONGODB_URL=mongodb://mongodb/marvel
+      - REDIS_URL=redis
+  react-app-client:
+    build: ./react-app-client
+    ports:
+        - "5000:3000"
+    links:
+      - character-marvel
+    tty: true
+    stdin_open: true
