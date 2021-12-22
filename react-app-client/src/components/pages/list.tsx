@@ -53,6 +53,9 @@ const List: React.FC<IProps> = ({setAppProps, appProps}) => {
 
 
   const confirm = (e:any, record:any) => {
+    const characterPrice = parseFloat(record.price.replace("$", ""));
+    const atualPrice:number = (appProps.total) ? appProps.total : 0;
+    console.log();
     axios.delete(`http://localhost:8080/api/v1/character/${record.id}`,
       {
         headers: { 'Authorization': 'Bearer ' + localStorage.getItem("user")}
@@ -61,7 +64,9 @@ const List: React.FC<IProps> = ({setAppProps, appProps}) => {
       message.warn('Character was deleted successfully!');
       axios.get(`http://localhost:8080/api/v1/character`, { 'headers': { 'Authorization': 'Bearer ' + localStorage.getItem("user")} })
       .then(res => {
-          setAppProps({isList: true, contentStyleMinHeight: "calc(89vh - 114px)", userName: appProps.userName, total: res.data.total});
+          console.log(res);
+          console.log(appProps.total);
+          setAppProps({isList: true, contentStyleMinHeight: "calc(89vh - 114px)", userName: appProps.userName, total: (res.data.total <= atualPrice) ? res.data.total - characterPrice: appProps.total });
           setAllData(res.data.records);
       })
       .catch(error => {
@@ -224,38 +229,46 @@ const List: React.FC<IProps> = ({setAppProps, appProps}) => {
     const publicKey = "0535ed9d59f604c30b73e83e53e973dc";
     const privateKey = "d521fb70c0602f219348c088cba0d0dcdeee5351";
     const ts = Date.now();
+
+
+
     axios.get(`http://gateway.marvel.com/v1/public/comics?ts=${ts}&apikey=${publicKey}&hash=${crypto.createHash('md5').update(`${ts}${privateKey}${publicKey}`).digest('hex')}`)
     .then(resp => {
-
+      
       const results:[{ modified: Date,
                        prices: [{price: string}], 
                        thumbnail: {extension: string, path: string}
                        description: string,
                        dates: [{date: Date}]}] = resp.data.data.results;
-      console.log(resp.data);
-      results.map(character => {
-        console.log(character);
 
-        
-        axios.post(`http://localhost:8080/api/v1/character`,
-        {
-          modified: (isNull(new Date(character.modified))) ? Date.now(): character.modified,
+              
+      const characters:any = results.map(character => {
+        const requestPayload = {
+          modified: (new Date(character.modified).toString() === "Invalid Date") ? Date.now(): character.modified,
           price: character.prices[0].price,
           thumbnail: `${character.thumbnail.path}.${character.thumbnail.extension}`,
           description: (character.description == "" || isNull(character.description)) ? "#N/A" :  character.description 
-        },
+        };
+
+        axios.post(`http://localhost:8080/api/v1/character`,
+        requestPayload,
         {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem("user")}
         })
-      .then(res => {
-        message.success('Character Added Successfully!');
-      })
-      .catch(error => {
-        message.error(error.response.data.message);
-      })
+        .then(res => {
+          console.log(character.modified);
+          message.success('Character Added Successfully!');
+          
+        })
+        .catch(error => {
+          console.log(new Date(character.modified).toString() === "Invalid Date" );
+          message.error(error.response.data.message);
+        })
+    
+        return requestPayload;
+      });
 
-
-      })
+      setAllData(characters);
 
     })
     .catch(err => {

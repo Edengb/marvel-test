@@ -33,3 +33,37 @@ services:
       - character-marvel
     tty: true
     stdin_open: true
+  sonarqube:
+    image: sonarqube:7.4-community
+    command: -Dsonar.ce.javaOpts=-Xmx1192m -Dsonar.web.javaOpts=-Xmx1192m
+    container_name: sonarqube
+    depends_on:
+      - sonarqube_db
+    ports:
+      - "9000:9000"
+    networks:
+      - sonar-net
+    environment:
+      - SONARQUBE_JDBC_URL=jdbc:postgresql://sonarqube_db:5432/sonar
+      - SONARQUBE_JDBC_USERNAME=sonar
+      - SONARQUBE_JDBC_PASSWORD=sonar
+  sonarqube_db:
+    image: postgres
+    container_name: sonarqube_db
+    networks:
+      - sonar-net
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+    volumes:
+      - postgresql:/var/lib/postgresql
+      - postgresql_data:/var/lib/postgresql/data
+networks:
+  sonar-net:
+volumes:
+  sonarqube_conf:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_bundled-plugins:
+  postgresql:
+  postgresql_data:
